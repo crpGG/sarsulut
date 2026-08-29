@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "NewsItem": {
+      "title": "NewsItem",
+      "description": "Official SAR news releases and operational reports",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 250 },
+        "excerpt": { "type": "string", "maxLength": 600 },
+        "content": { "type": "string", "maxLength": 15000 },
+        "category": { "type": "string", "maxLength": 60 },
+        "author": { "type": "string", "maxLength": 100 },
+        "date": { "type": "string", "maxLength": 60 },
+        "readTime": { "type": "string", "maxLength": 40 },
+        "isDraft": { "type": "boolean" },
+        "isPinned": { "type": "boolean" },
+        "image": { "type": "string", "maxLength": 10000 },
+        "tags": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "excerpt", "category", "author", "date"]
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "Documentation and press photos of SAR operations",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 500 },
+        "category": { "type": "string", "maxLength": 50 },
+        "date": { "type": "string", "maxLength": 50 },
+        "location": { "type": "string", "maxLength": 150 },
+        "aspectRatio": { "type": "string", "enum": ["landscape", "square"] },
+        "imageUrl": { "type": "string", "maxLength": 10000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "description", "category", "imageUrl", "aspectRatio"]
+    },
+    "ActivityItem": {
+      "title": "ActivityItem",
+      "description": "Scheduled SAR activities, joint exercises, and standby alerts",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 60 },
+        "location": { "type": "string", "maxLength": 150 },
+        "type": { "type": "string", "maxLength": 60 },
+        "status": { "type": "string", "enum": ["Dijadwalkan", "Sedang Berlangsung", "Selesai"] },
+        "description": { "type": "string", "maxLength": 1000 },
+        "participants": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "date", "location", "type", "status", "description"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Public inquiries, PPID requests, or coordination messages",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 120 },
+        "phone": { "type": "string", "maxLength": 40 },
+        "subject": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 3000 },
+        "category": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "message"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrator record for SAR Manado CMS",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 120 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["admin", "superadmin", "editor"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/news/{newsId}": {
+      "schema": "NewsItem",
+      "description": "Collection of official news and press releases"
+    },
+    "/galleries/{galleryId}": {
+      "schema": "GalleryItem",
+      "description": "Collection of photo gallery items"
+    },
+    "/activities/{activityId}": {
+      "schema": "ActivityItem",
+      "description": "Collection of scheduled and past SAR operations/activities"
+    },
+    "/contacts/{contactId}": {
+      "schema": "ContactMessage",
+      "description": "Public correspondence and inquiry submissions"
+    },
+    "/admins/{adminId}": {
+      "schema": "AdminUser",
+      "description": "Authorized administrative accounts"
+    }
+  }
+}

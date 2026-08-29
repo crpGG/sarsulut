@@ -1,0 +1,6 @@
+{
+  "name": "Basarnas Sulut",
+  "description": "Situs resmi Kantor Pencarian dan Pertolongan Manado — Basarnas Sulawesi Utara. Siaga 24/7. Darurat 115.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
