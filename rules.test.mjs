@@ -12,6 +12,11 @@
 //     "node rules.test.mjs"
 //
 // Set RULES_FILE to point at a different rules file.
+//
+// storage.rules has a matching suite in storage.rules.test.mjs:
+//   npx firebase emulators:exec --only storage \
+//     --config firebase.emulator.json --project sarsulut-rules-test \
+//     "node storage.rules.test.mjs"
 
 import {
   initializeTestEnvironment,
