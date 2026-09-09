@@ -66,6 +66,7 @@ export const WilayahMap: React.FC = () => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const tileFallbackRef = useRef<boolean>(false);
 
   // Coastline polygon paths for the schematic fallback canvas
   const land = [
@@ -143,6 +144,15 @@ export const WilayahMap: React.FC = () => {
         attribution: defaultProvider.attribution
       }).addTo(map);
       tileLayerRef.current = initialLayer;
+
+      // If the OSM tile host is unreachable (blocked by an ISP or rate limited),
+      // switch to Esri once so the map never renders as an empty box.
+      initialLayer.on('tileerror', () => {
+        if (tileFallbackRef.current) return;
+        tileFallbackRef.current = true;
+        setTileLayer('esri_satellite');
+        setMapNote('Sumber peta utama tidak dapat diakses · beralih ke Citra Satelit Esri');
+      });
 
       // Add Markers
       const markers: L.Marker[] = [];
