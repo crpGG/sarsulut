@@ -35,33 +35,66 @@ service cloud.firestore {
       );
     }
 
+    // Optional-field helper: absent is fine, present must be a bounded string.
+    function optStr(data, field, max) {
+      return !(field in data) || (data[field] is string && data[field].size() <= max);
+    }
+
+    // Images are stored in Firebase Storage and referenced here by download URL.
+    // The cap keeps base64 data URLs out of Firestore documents, which would
+    // otherwise blow past the 1 MiB per-document limit.
+    function isImageRef(data) {
+      return optStr(data, 'image', 5000);
+    }
+
     // Validation Functions
+    // These mirror the interfaces in src/types.ts. Keep the two in sync:
+    // a field name that drifts here silently turns every write into
+    // permission-denied.
     function isValidNews(data) {
       return data.title is string && data.title.size() > 0 && data.title.size() <= 250
-        && data.excerpt is string && data.excerpt.size() <= 600
         && data.category is string && data.category.size() <= 60
-        && data.author is string && data.author.size() <= 100
-        && data.date is string && data.date.size() <= 60;
+        && data.date is string && data.date.size() <= 60
+        && optStr(data, 'author', 100)
+        && optStr(data, 'location', 150)
+        && optStr(data, 'summary', 600)
+        && optStr(data, 'content', 15000)
+        && isImageRef(data)
+        && (!('status' in data) || data.status in ['published', 'draft'])
+        && (!('pinned' in data) || data.pinned is bool)
+        && (!('views' in data) || data.views is int)
+        && (!('tags' in data) || data.tags is list);
     }
 
     function isValidGallery(data) {
-      return data.title is string && data.title.size() > 0 && data.title.size() <= 200
-        && data.description is string && data.description.size() <= 500
-        && data.category is string && data.category.size() <= 50
-        && data.aspectRatio in ['landscape', 'square'];
+      return data.label is string && data.label.size() > 0 && data.label.size() <= 200
+        && data.aspect in ['r1610', 'r11']
+        && optStr(data, 'caption', 500)
+        && optStr(data, 'category', 60)
+        && optStr(data, 'location', 150)
+        && optStr(data, 'date', 60)
+        && optStr(data, 'colSpan', 40)
+        && isImageRef(data);
     }
 
     function isValidActivity(data) {
       return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.type is string && data.type.size() <= 60
         && data.date is string && data.date.size() <= 60
         && data.location is string && data.location.size() <= 150
-        && data.type is string && data.type.size() <= 60
-        && data.status in ['Dijadwalkan', 'Sedang Berlangsung', 'Selesai'];
+        && data.status in ['selesai', 'berlangsung', 'dijadwalkan']
+        && optStr(data, 'desc', 2000)
+        && optStr(data, 'participants', 200)
+        && isImageRef(data);
     }
 
     function isValidContact(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 100
-        && data.message is string && data.message.size() > 0 && data.message.size() <= 3000;
+        && data.message is string && data.message.size() > 0 && data.message.size() <= 3000
+        && optStr(data, 'email', 120)
+        && optStr(data, 'phone', 40)
+        && optStr(data, 'subject', 200)
+        && optStr(data, 'category', 60);
     }
 
     // Collections

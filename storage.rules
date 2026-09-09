@@ -1,0 +1,56 @@
+rules_version = '2';
+
+// Firebase Storage rules for Kantor SAR Manado.
+//
+// Deploy with:  firebase deploy --only storage
+// (or paste into Firebase Console -> Storage -> Rules)
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Default-deny everything not matched below.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isMasterAdmin() {
+      return isSignedIn() && request.auth.token.email == 'crpmovie@gmail.com';
+    }
+
+    function isAdmin() {
+      return isMasterAdmin() || firestore.exists(
+        /databases/(default)/documents/admins/$(request.auth.uid)
+      );
+    }
+
+    // Uploaded images must be real images and bounded in size. This mirrors
+    // MAX_IMAGE_BYTES in src/lib/firebase.ts.
+    function isValidImage() {
+      return request.resource.size <= 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
+    }
+
+    // Public site imagery: world-readable, admin-writable.
+    match /galleries/{fileName} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /news/{fileName} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /activities/{fileName} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+  }
+}

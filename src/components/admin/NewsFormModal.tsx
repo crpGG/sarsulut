@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { NewsItem } from '../../types';
 import { useAdminData } from '../../context/AdminDataContext';
+import { uploadImage } from '../../lib/firebase';
 import { SVG_NEWS_PLACEHOLDER } from '../../data/images';
 
 interface NewsFormModalProps {
@@ -94,6 +95,8 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({ isOpen, onClose, i
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [status, setStatus] = useState<'published' | 'draft'>('published');
   const [pinned, setPinned] = useState(false);
   const [tagsInput, setTagsInput] = useState('');
@@ -149,18 +152,23 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({ isOpen, onClose, i
     setTagsInput(tmpl.tags);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        setImage(base64);
-      }
-    };
-    reader.readAsDataURL(file);
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      // Upload to Firebase Storage and keep only the URL in Firestore.
+      setImage(await uploadImage(file, 'news'));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gagal mengunggah gambar.';
+      setUploadError(message);
+      console.warn('Image upload failed:', err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -408,7 +416,7 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({ isOpen, onClose, i
               {/* Mode: File Upload */}
               {imageMode === 'upload' && (
                 <div
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => { if (!isUploading) fileInputRef.current?.click(); }}
                   className="border-2 border-dashed border-slate-300 hover:border-amber-600 p-5 rounded-xl text-center cursor-pointer bg-white transition-colors flex flex-col items-center justify-center"
                 >
                   <Upload className="w-6 h-6 text-amber-600 mb-1" />
@@ -416,10 +424,18 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({ isOpen, onClose, i
                     Klik untuk memilih foto dari komputer / HP
                   </span>
                   <span className="text-[11px] text-slate-500">Format PNG, JPG, JPEG</span>
+                  {isUploading && (
+                    <span className="mt-2 text-[11px] font-mono text-amber-700">
+                      Mengunggah ke Firebase Storage…
+                    </span>
+                  )}
+                  {uploadError && (
+                    <span className="mt-2 text-[11px] font-semibold text-red-600">{uploadError}</span>
+                  )}
                   <input
                     type="file"
                     ref={fileInputRef}
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     onChange={handleFileUpload}
                     className="hidden"
                   />

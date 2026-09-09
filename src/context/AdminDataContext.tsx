@@ -352,8 +352,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       });
       showToast(`Berita "${newItem.title.slice(0, 35)}..." tersimpan di Cloud Firestore!`);
     } catch (err) {
-      console.warn('Firestore news write skipped or failed:', err);
-      showToast(`Berita "${newItem.title.slice(0, 35)}..." tersimpan secara lokal.`);
+      reportWriteFailure(err, 'berita');
     }
 
     return newItem;
@@ -371,8 +370,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       });
       showToast('Berita berhasil diperbarui di Cloud Firestore!');
     } catch (err) {
-      console.warn('Firestore news update error:', err);
-      showToast('Berita berhasil diperbarui.');
+      reportWriteFailure(err, 'perubahan berita');
     }
   };
 
@@ -383,8 +381,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       await deleteDoc(doc(db, 'news', id));
       showToast('Berita berhasil dihapus dari Cloud Firestore.', 'info');
     } catch (err) {
-      console.warn('Firestore news delete error:', err);
-      showToast('Berita berhasil dihapus.', 'info');
+      reportWriteFailure(err, 'penghapusan berita');
     }
   };
 
@@ -404,6 +401,24 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     showToast(newPin ? 'Berita disematkan sebagai Berita Utama.' : 'Sematkan berita dilepas.');
   };
 
+  // A rejected write (permission-denied, offline, failed validation) used to
+  // surface as a success toast, so the admin had no way to know nothing had
+  // persisted. Report the real reason instead.
+  const reportWriteFailure = (err: unknown, what: string) => {
+    const code = (err as { code?: string })?.code;
+    const reason =
+      code === 'permission-denied'
+        ? 'ditolak oleh aturan keamanan Firestore'
+        : code === 'unavailable'
+          ? 'koneksi ke Firestore terputus'
+          : code || 'kesalahan tidak dikenal';
+    console.warn(`Firestore ${what} error:`, err);
+    showToast(
+      `GAGAL menyimpan ${what} ke Cloud Firestore (${reason}). Perubahan hanya terlihat di perangkat ini dan akan hilang saat halaman dimuat ulang.`,
+      'error'
+    );
+  };
+
   // Gallery CRUD with Firestore Sync
   const addGallery = async (item: Omit<GalleryItem, 'id'>): Promise<GalleryItem> => {
     const newId = `galeri-${Date.now()}`;
@@ -421,8 +436,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       });
       showToast(`Dokumentasi "${newItem.label}" tersimpan di Cloud Firestore!`);
     } catch (err) {
-      console.warn('Firestore gallery write error:', err);
-      showToast(`Dokumentasi "${newItem.label}" tersimpan secara lokal.`);
+      reportWriteFailure(err, 'dokumentasi galeri');
     }
 
     return newItem;
@@ -440,8 +454,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       });
       showToast('Data galeri berhasil diperbarui di Cloud Firestore!');
     } catch (err) {
-      console.warn('Firestore gallery update error:', err);
-      showToast('Data galeri berhasil diperbarui!');
+      reportWriteFailure(err, 'perubahan galeri');
     }
   };
 
@@ -452,8 +465,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       await deleteDoc(doc(db, 'galleries', id));
       showToast('Foto dokumentasi berhasil dihapus dari Cloud Firestore.', 'info');
     } catch (err) {
-      console.warn('Firestore gallery delete error:', err);
-      showToast('Foto dokumentasi berhasil dihapus dari galeri.', 'info');
+      reportWriteFailure(err, 'penghapusan dokumentasi');
     }
   };
 
@@ -474,8 +486,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       });
       showToast(`Kegiatan "${newItem.title.slice(0, 35)}..." tersimpan di Cloud Firestore!`);
     } catch (err) {
-      console.warn('Firestore activity write error:', err);
-      showToast(`Kegiatan "${newItem.title.slice(0, 35)}..." berhasil dicatat.`);
+      reportWriteFailure(err, 'kegiatan');
     }
 
     return newItem;
@@ -493,8 +504,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       });
       showToast('Data kegiatan berhasil diperbarui di Cloud Firestore!');
     } catch (err) {
-      console.warn('Firestore activity update error:', err);
-      showToast('Data kegiatan berhasil diperbarui!');
+      reportWriteFailure(err, 'perubahan kegiatan');
     }
   };
 
@@ -505,8 +515,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       await deleteDoc(doc(db, 'activities', id));
       showToast('Kegiatan berhasil dihapus dari Cloud Firestore.', 'info');
     } catch (err) {
-      console.warn('Firestore activity delete error:', err);
-      showToast('Kegiatan berhasil dihapus.', 'info');
+      reportWriteFailure(err, 'penghapusan kegiatan');
     }
   };
 

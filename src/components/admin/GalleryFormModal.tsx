@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Upload, Image as ImageIcon, Check, MapPin, Calendar, Tag } from 'lucide-react';
 import { GalleryItem } from '../../types';
 import { useAdminData } from '../../context/AdminDataContext';
+import { uploadImage } from '../../lib/firebase';
 import { SVG_PLACEHOLDER } from '../../data/images';
 
 interface GalleryFormModalProps {
@@ -41,6 +42,8 @@ export const GalleryFormModal: React.FC<GalleryFormModalProps> = ({ isOpen, onCl
   const [date, setDate] = useState('Agustus 2026');
   const [image, setImage] = useState('');
   const [imageMode, setImageMode] = useState<'preset' | 'upload' | 'url'>('preset');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialData) {
@@ -64,18 +67,23 @@ export const GalleryFormModal: React.FC<GalleryFormModalProps> = ({ isOpen, onCl
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        setImage(base64);
-      }
-    };
-    reader.readAsDataURL(file);
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      // Upload to Firebase Storage and keep only the URL in Firestore.
+      setImage(await uploadImage(file, 'galleries'));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gagal mengunggah gambar.';
+      setUploadError(message);
+      console.warn('Image upload failed:', err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -272,7 +280,7 @@ export const GalleryFormModal: React.FC<GalleryFormModalProps> = ({ isOpen, onCl
 
             {imageMode === 'upload' && (
               <div
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => { if (!isUploading) fileInputRef.current?.click(); }}
                 className="border-2 border-dashed border-slate-300 hover:border-amber-600 p-5 rounded-xl text-center cursor-pointer bg-white transition-colors flex flex-col items-center justify-center"
               >
                 <Upload className="w-6 h-6 text-amber-600 mb-1" />
@@ -280,10 +288,18 @@ export const GalleryFormModal: React.FC<GalleryFormModalProps> = ({ isOpen, onCl
                   Pilih foto dokumentasi dari komputer / HP
                 </span>
                 <span className="text-[11px] text-slate-500">Format PNG, JPG, JPEG</span>
+                {isUploading && (
+                  <span className="mt-2 text-[11px] font-mono text-amber-700">
+                    Mengunggah ke Firebase Storage…
+                  </span>
+                )}
+                {uploadError && (
+                  <span className="mt-2 text-[11px] font-semibold text-red-600">{uploadError}</span>
+                )}
                 <input
                   type="file"
                   ref={fileInputRef}
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
                   onChange={handleFileUpload}
                   className="hidden"
                 />
