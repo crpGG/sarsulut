@@ -1,0 +1,56 @@
+name: Deploy Firebase rules
+
+# Publishes firestore.rules and storage.rules whenever they change on main.
+# Editing the rules files does nothing on its own -- rules only take effect
+# once deployed, which is what this workflow automates.
+#
+# One-time setup: add a repository secret named FIREBASE_SERVICE_ACCOUNT
+# containing the full JSON key of a service account with the
+# "Firebase Rules Admin" role. Until then this workflow skips cleanly
+# instead of failing.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firestore.rules'
+      - 'storage.rules'
+      - 'firebase.json'
+      - '.firebaserc'
+      - '.github/workflows/deploy-firebase-rules.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for credentials
+        id: creds
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$SA" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::FIREBASE_SERVICE_ACCOUNT is not set - skipping rules deploy."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.creds.outputs.ready == 'true'
+        with:
+          node-version: '20'
+
+      - name: Write service account key
+        if: steps.creds.outputs.ready == 'true'
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+
+      - name: Deploy rules
+        if: steps.creds.outputs.ready == 'true'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx --yes firebase-tools@13 deploy --only firestore:rules,storage --non-interactive

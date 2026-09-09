@@ -21,10 +21,15 @@ service firebase.storage {
       return isSignedIn() && request.auth.token.email == 'crpmovie@gmail.com';
     }
 
+    // NOTE: cross-service firestore.exists() can only read the (default)
+    // database. This project's Firestore data lives in a named database
+    // (see firestoreDatabaseId in firebase-applet-config.json), so this
+    // lookup cannot see the real admins collection and will not grant
+    // access. Uploads therefore work for the master admin only. To let
+    // other admins upload, give them a custom auth claim and check
+    // request.auth.token here instead.
     function isAdmin() {
-      return isMasterAdmin() || firestore.exists(
-        /databases/(default)/documents/admins/$(request.auth.uid)
-      );
+      return isMasterAdmin();
     }
 
     // Uploaded images must be real images and bounded in size. This mirrors
